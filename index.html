@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>City Sense Reporter - Integrated Application</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" rel="stylesheet"/>
+
+<link href="style.css" rel="stylesheet"/></head>
+<body>
+<div class="container">
+<!-- Header -->
+<div class="header">
+<nav class="nav">
+<div class="logo">
+                    🏙️ City Sense Reporter
+                </div>
+<div class="user-info hidden" id="userInfo">
+                    👋 Welcome, <span id="userName"></span>
+<span class="status-badge" id="userRole"></span>
+</div>
+<div class="nav-buttons">
+<button class="btn btn-secondary" id="loginBtn">🔑 Login</button>
+<button class="btn btn-secondary" id="registerBtn">👤 Register</button>
+<button class="btn btn-secondary hidden" id="logoutBtn">🚪 Logout</button>
+<button class="btn btn-primary hidden" id="adminBtn">👨‍💼 Admin</button>
+<button class="btn btn-success" id="refreshBtn">🔄 Refresh</button>
+</div>
+</nav>
+</div>
+<!-- Main Content -->
+<div class="main-content">
+<!-- Left Panel - Issue Reporting -->
+<div class="card">
+<h2>📝 Report New Issue</h2>
+<div class="alert alert-error hidden" id="authMessage">
+                    🔒 Please login to report issues
+                </div>
+<div class="loading-overlay hidden" id="loadingReport">
+<div class="loader"></div>
+</div>
+<form id="issueForm">
+<div class="form-group">
+<label for="issueTitle">Issue Title *</label>
+<input class="form-control" id="issueTitle" placeholder="Describe the issue briefly" required="" type="text"/>
+</div>
+<div class="form-group">
+<label for="issueCategory">Category *</label>
+<select class="form-control" id="issueCategory" required="">
+<option value="">Select Category</option>
+<option value="infrastructure">🏗️ Infrastructure</option>
+<option value="safety">🚨 Public Safety</option>
+<option value="environment">🌱 Environment</option>
+<option value="services">🏛️ Public Services</option>
+<option value="other">📋 Other</option>
+</select>
+</div>
+<div class="form-group">
+<label for="issuePriority">Priority Level</label>
+<select class="form-control" id="issuePriority">
+<option value="low">🟢 Low Priority</option>
+<option selected="" value="medium">🟡 Medium Priority</option>
+<option value="high">🔴 High Priority</option>
+</select>
+</div>
+<div class="form-group">
+<label for="issueDescription">Detailed Description</label>
+<textarea class="form-control" id="issueDescription" placeholder="Provide detailed information about the issue" rows="4"></textarea>
+</div>
+<div class="form-group">
+<label>📷 Upload Photo (Optional)</label>
+<div class="photo-upload" onclick="document.getElementById('photoInput').click()">
+<div id="uploadText">📸 Click to upload photo evidence</div>
+<input accept="image/*" id="photoInput" style="display: none;" type="file"/>
+<img class="photo-preview hidden" id="photoPreview" style="max-width: 100%; max-height: 200px; border-radius: 12px; margin-top: 15px;"/>
+</div>
+</div>
+<div class="form-group">
+<label>📍 Location Selection *</label>
+<div class="map-container" id="reportMap"></div>
+<button class="btn btn-secondary" id="getCurrentLocation" style="margin-top: 15px; width: 100%;" type="button">
+                            🎯 Use My Current Location
+                        </button>
+<div class="location-info hidden" id="locationInfo"></div>
+</div>
+<button class="btn btn-primary" id="submitBtn" style="width: 100%; margin-top: 20px;" type="submit">
+                        🚀 Submit Issue Report
+                    </button>
+</form>
+</div>
+<!-- Right Panel - Issue List -->
+<div class="card">
+<h2>📋 Recent Issues</h2>
+<div class="admin-controls">
+<div class="filter-group">
+<label>Status:</label>
+<select class="form-control" id="statusFilter" style="width: 150px;">
+<option value="">All Status</option>
+<option value="submitted">Submitted</option>
+<option value="assigned">Assigned</option>
+<option value="in-progress">In Progress</option>
+<option value="resolved">Resolved</option>
+</select>
+</div>
+<div class="filter-group">
+<label>Category:</label>
+<select class="form-control" id="categoryFilter" style="width: 160px;">
+<option value="">All Categories</option>
+<option value="infrastructure">Infrastructure</option>
+<option value="safety">Safety</option>
+<option value="environment">Environment</option>
+<option value="services">Services</option>
+<option value="other">Other</option>
+</select>
+</div>
+</div>
+<div class="issue-list" id="issueList">
+<div class="loader"></div>
+</div>
+</div>
+</div>
+<!-- Statistics Dashboard -->
+<div class="card">
+<h2>📊 City Analytics Dashboard</h2>
+<div class="stats-grid" id="statsGrid">
+<div class="stat-card">
+<div class="stat-number" id="totalIssues">0</div>
+<div class="stat-label">Total Issues</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="resolvedIssues">0</div>
+<div class="stat-label">Resolved Issues</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="inProgressIssues">0</div>
+<div class="stat-label">In Progress</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="todayIssues">0</div>
+<div class="stat-label">Today's Reports</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="averageResolutionTime">0</div>
+<div class="stat-label">Avg Resolution (Days)</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="highPriorityIssues">0</div>
+<div class="stat-label">High Priority</div>
+</div>
+</div>
+<div class="map-container" id="overviewMap" style="height: 400px; margin-top: 25px;"></div>
+</div>
+</div>
+<!-- Connection Status -->
+<div class="connection-status connection-online" id="connectionStatus">
+        🟢 Backend Connected
+    </div>
+<!-- Login Modal -->
+<div class="modal" id="loginModal">
+<div class="modal-content">
+<div class="modal-header">
+<h2>🔑 Login to Your Account</h2>
+<button class="close-btn" onclick="closeModal('loginModal')">×</button>
+</div>
+<div id="loginAlert"></div>
+<form id="loginForm">
+<div class="form-group">
+<label for="loginEmail">Email Address</label>
+<input autocomplete="email" class="form-control" id="loginEmail" placeholder="your.email@example.com" required="" type="email"/>
+</div>
+<div class="form-group">
+<label for="loginPassword">Password</label>
+<input autocomplete="current-password" class="form-control" id="loginPassword" placeholder="Enter your password" required="" type="password"/>
+</div>
+<div style="margin-bottom: 25px; padding: 15px; background: #f7fafc; border-radius: 12px; font-size: 14px; color: #4a5568;">
+</div>
+<button class="btn btn-primary" id="loginSubmitBtn" style="width: 100%;" type="submit">
+                    🚀 Login to Account
+                </button>
+</form>
+</div>
+</div>
+<!-- Register Modal -->
+<div class="modal" id="registerModal">
+<div class="modal-content">
+<div class="modal-header">
+<h2>👤 Create New Account</h2>
+<button class="close-btn" onclick="closeModal('registerModal')">×</button>
+</div>
+<div id="registerAlert"></div>
+<form id="registerForm">
+<div class="form-group">
+<label for="registerName">Full Name *</label>
+<input autocomplete="name" class="form-control" id="registerName" placeholder="Enter your full name" required="" type="text"/>
+</div>
+<div class="form-group">
+<label for="registerEmail">Email Address *</label>
+<input autocomplete="email" class="form-control" id="registerEmail" placeholder="your.email@example.com" required="" type="email"/>
+</div>
+<div class="form-group">
+<label for="registerPhone">Phone Number (Optional)</label>
+<input autocomplete="tel" class="form-control" id="registerPhone" placeholder="+91 98765 43210" type="tel"/>
+</div>
+<div class="form-group">
+<label for="registerPassword">Password * (min 6 characters)</label>
+<input autocomplete="new-password" class="form-control" id="registerPassword" minlength="6" placeholder="Create a secure password" required="" type="password"/>
+</div>
+<button class="btn btn-primary" id="registerSubmitBtn" style="width: 100%;" type="submit">
+                    ✨ Create Account
+                </button>
+</form>
+</div>
+</div>
+<!-- Admin Dashboard Modal -->
+<div class="modal" id="adminModal">
+<div class="modal-content large">
+<div class="modal-header">
+<h2>👨‍💼 Admin Control Panel</h2>
+<button class="close-btn" onclick="closeModal('adminModal')">×</button>
+</div>
+<div class="stats-grid" style="margin-bottom: 25px;">
+<div class="stat-card">
+<div class="stat-number" id="adminTotalIssues">0</div>
+<div class="stat-label">Total Issues</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="adminPendingIssues">0</div>
+<div class="stat-label">Pending Review</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="adminTodayIssues">0</div>
+<div class="stat-label">Today's Reports</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="adminHighPriority">0</div>
+<div class="stat-label">High Priority</div>
+</div>
+</div>
+<div class="admin-controls">
+<div class="filter-group">
+<label>Filter Status:</label>
+<select class="form-control" id="adminStatusFilter">
+<option value="">All Issues</option>
+<option value="submitted">🔴 Submitted</option>
+<option value="assigned">🟡 Assigned</option>
+<option value="in-progress">🔵 In Progress</option>
+<option value="resolved">🟢 Resolved</option>
+</select>
+</div>
+<div class="filter-group">
+<label>Department:</label>
+<select class="form-control" id="adminDepartmentFilter">
+<option value="">All Departments</option>
+<option value="Public Works">Public Works</option>
+<option value="Environmental Services">Environmental</option>
+<option value="Public Safety">Public Safety</option>
+<option value="Parks &amp; Recreation">Parks &amp; Recreation</option>
+</select>
+</div>
+<button class="btn btn-secondary" id="exportBtn">📊 Export Data</button>
+<button class="btn btn-warning" id="bulkUpdateBtn">⚡ Bulk Update</button>
+</div>
+<div class="map-container" id="adminMap" style="height: 300px; margin-bottom: 25px;"></div>
+<div class="issue-list" id="adminIssueList" style="max-height: 400px;">
+<div class="loader"></div>
+</div>
+</div>
+</div>
+<!-- Issue Detail Modal -->
+<div class="modal" id="issueDetailModal">
+<div class="modal-content">
+<div class="modal-header">
+<h2>🔍 Issue Details</h2>
+<button class="close-btn" onclick="closeModal('issueDetailModal')">×</button>
+</div>
+<div class="issue-detail" id="issueDetailContent">
+<!-- Issue details will be populated here -->
+</div>
+</div>
+</div>
+
+<script src="script.js"></script></body>
+</html>
